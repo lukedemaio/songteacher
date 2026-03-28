@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from app.core.job_store import job_store
-from app.models.schemas import AnalyzeRequest, AnalyzeResponse, JobStatus, JobStatusResponse
+from app.models.schemas import AnalyzeRequest, AnalyzeResponse, Instrument, JobStatus, JobStatusResponse
 from app.services.pipeline import run_pipeline
 
 router = APIRouter(prefix="/api", tags=["jobs"])
@@ -67,4 +67,31 @@ async def get_job_audio(job_id: str):
         audio_path,
         media_type="audio/wav",
         filename=f"{job_id}.wav",
+    )
+
+
+@router.get("/jobs/{job_id}/audio/{stem}")
+async def get_stem_audio(job_id: str, stem: str):
+    """Stream a separated instrument stem audio file."""
+    # Validate stem name
+    try:
+        instrument = Instrument(stem)
+    except ValueError:
+        raise HTTPException(400, f"Invalid stem: {stem}")
+
+    job = job_store.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    if not job.stems_dir:
+        raise HTTPException(404, "Stems not yet available")
+
+    stem_path = Path(job.stems_dir) / f"{instrument.value}.wav"
+    if not stem_path.exists():
+        raise HTTPException(404, f"Stem audio not found: {stem}")
+
+    return FileResponse(
+        stem_path,
+        media_type="audio/wav",
+        filename=f"{job_id}_{instrument.value}.wav",
     )
