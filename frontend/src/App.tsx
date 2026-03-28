@@ -7,14 +7,13 @@ import { LoadingProgress } from "./components/LoadingProgress";
 import { SongInfo } from "./components/SongInfo";
 import { PlaybackControls } from "./components/PlaybackControls";
 import { StemSelector } from "./components/StemSelector";
+import { NowPlaying } from "./components/NowPlaying";
 import { ChordTimeline } from "./components/ChordTimeline";
 import { PianoRoll } from "./components/PianoRoll";
 import { GuitarTab } from "./components/GuitarTab";
 import { GuitarFretboard } from "./components/GuitarFretboard";
-import { NowPlaying } from "./components/NowPlaying";
 import { SongChords } from "./components/SongChords";
 import { TheoryReference } from "./components/TheoryReference";
-import { ActiveChord } from "./components/ActiveChord";
 import type { Instrument } from "./types";
 
 function App() {
@@ -70,7 +69,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
-      {/* Header */}
+      {/* 1. Header */}
       <header className="border-b border-slate-800 px-6 py-4">
         <h1 className="text-2xl font-bold text-white">
           Song<span className="text-indigo-400">Teacher</span>
@@ -81,7 +80,7 @@ function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-4">
-        {/* URL Input */}
+        {/* 2. URL Input */}
         <UrlInput onSubmit={submit} loading={loading} />
 
         {/* Error */}
@@ -96,23 +95,13 @@ function App() {
           <LoadingProgress stage={job.stage} progress={job.progress} />
         )}
 
-        {/* Results */}
+        {/* Results — ordered for learning flow */}
         {analysis && (
           <div className="space-y-4">
-            {/* Song info (with inline scale notes) */}
+            {/* 3. Song info (key, tempo, time sig, scale notes) */}
             <SongInfo analysis={analysis} />
 
-            {/* Song chords reference */}
-            <SongChords
-              chords={analysis.chords}
-              chordSummary={analysis.chord_summary}
-              guitarTabChords={analysis.guitar_tab_chords}
-              currentTime={playback.currentTime}
-              onSeek={handleSeek}
-              subscribe={playback.subscribe}
-            />
-
-            {/* Playback controls (with speed selector) */}
+            {/* 4. Playback controls */}
             <PlaybackControls
               isPlaying={playback.isPlaying}
               currentTime={playback.currentTime}
@@ -124,7 +113,7 @@ function App() {
               onPlaybackRateChange={playback.setPlaybackRate}
             />
 
-            {/* Stem selector */}
+            {/* 5. Stem selector */}
             {analysis.stems.length > 0 && (
               <StemSelector
                 stems={analysis.stems}
@@ -133,7 +122,7 @@ function App() {
               />
             )}
 
-            {/* Now playing context bar */}
+            {/* 6. NowPlaying — section + current/next chord with explanation */}
             <NowPlaying
               chords={analysis.chords}
               sections={analysis.sections}
@@ -142,14 +131,7 @@ function App() {
               subscribe={playback.subscribe}
             />
 
-            {/* Active chord display */}
-            <ActiveChord
-              chords={analysis.chords}
-              currentTime={playback.currentTime}
-              subscribe={playback.subscribe}
-            />
-
-            {/* Chord timeline */}
+            {/* 7. Chord timeline */}
             <ChordTimeline
               chords={analysis.chords}
               currentTime={playback.currentTime}
@@ -158,7 +140,7 @@ function App() {
               subscribe={playback.subscribe}
             />
 
-            {/* Piano roll (vertical) */}
+            {/* 8. Piano roll — main visual guide */}
             <PianoRoll
               notes={pianoRollNotes}
               currentTime={playback.currentTime}
@@ -168,7 +150,7 @@ function App() {
               emptyMessage={pianoRollEmptyMessage}
             />
 
-            {/* Guitar section */}
+            {/* 9. Guitar tab + chord shape — side by side */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
                 <GuitarTab
@@ -188,7 +170,17 @@ function App() {
               </div>
             </div>
 
-            {/* Theory reference (collapsible, collapsed by default) */}
+            {/* 10. Song chords — reference with mini fretboard diagrams */}
+            <SongChords
+              chords={analysis.chords}
+              chordSummary={analysis.chord_summary}
+              guitarTabChords={analysis.guitar_tab_chords}
+              currentTime={playback.currentTime}
+              onSeek={handleSeek}
+              subscribe={playback.subscribe}
+            />
+
+            {/* 11. Theory reference — collapsible, collapsed by default */}
             <TheoryReference
               annotations={analysis.theory_annotations}
               currentTime={playback.currentTime}
