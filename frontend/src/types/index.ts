@@ -63,6 +63,15 @@ export interface SongSection {
   end_time: number;
 }
 
+export interface ChordSummary {
+  name: string;
+  roman_numeral: string;
+  function: ChordFunction;
+  notes: string[];
+  scale_degrees: string[];
+  count: number;
+}
+
 export interface SongAnalysis {
   title: string;
   duration: number;
@@ -77,6 +86,9 @@ export interface SongAnalysis {
   guitar_tab_chords: GuitarTabChord[];
   theory_annotations: TheoryAnnotation[];
   sections: SongSection[];
+  scale_notes: string[];
+  chord_summary: ChordSummary[];
+  common_progressions: string[];
 }
 
 export interface AnalyzeResponse {

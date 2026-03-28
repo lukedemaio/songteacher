@@ -16,6 +16,22 @@ export function SongInfo({ analysis }: Props) {
         <InfoCard label="Time Sig" value={analysis.time_signature} />
         <InfoCard label="Duration" value={formatTime(analysis.duration)} />
       </div>
+
+      {analysis.scale_notes && analysis.scale_notes.length > 0 && (
+        <div className="mt-4">
+          <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Scale Notes</div>
+          <div className="flex flex-wrap gap-2">
+            {analysis.scale_notes.map((note) => (
+              <span
+                key={note}
+                className="px-3 py-1 bg-indigo-900/40 border border-indigo-700/50 rounded-full text-sm font-medium text-indigo-300"
+              >
+                {note}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

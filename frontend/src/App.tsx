@@ -12,6 +12,8 @@ import { GuitarTab } from "./components/GuitarTab";
 import { GuitarFretboard } from "./components/GuitarFretboard";
 import { TheoryPanel } from "./components/TheoryPanel";
 import { TheoryDrilldown } from "./components/TheoryDrilldown";
+import { QuickReference } from "./components/QuickReference";
+import { ActiveChord } from "./components/ActiveChord";
 import type { TheoryAnnotation } from "./types";
 
 function App() {
@@ -65,10 +67,13 @@ function App() {
         {/* Results */}
         {analysis && (
           <div className="space-y-4">
-            {/* Song info */}
+            {/* Song info (with inline scale notes) */}
             <SongInfo analysis={analysis} />
 
-            {/* Playback controls */}
+            {/* Quick reference */}
+            <QuickReference analysis={analysis} />
+
+            {/* Playback controls (with speed selector) */}
             <PlaybackControls
               isPlaying={playback.isPlaying}
               currentTime={playback.currentTime}
@@ -80,6 +85,12 @@ function App() {
               onPlaybackRateChange={playback.setPlaybackRate}
             />
 
+            {/* Active chord display */}
+            <ActiveChord
+              chords={analysis.chords}
+              currentTime={playback.currentTime}
+            />
+
             {/* Chord timeline */}
             <ChordTimeline
               chords={analysis.chords}
@@ -88,7 +99,7 @@ function App() {
               onSeek={handleSeek}
             />
 
-            {/* Piano roll */}
+            {/* Piano roll (vertical) */}
             <PianoRoll
               notes={analysis.notes}
               currentTime={playback.currentTime}
