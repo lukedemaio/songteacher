@@ -15,10 +15,21 @@ class JobStatus(str, Enum):
 
 class PipelineStage(str, Enum):
     downloading = "downloading"
+    separating_stems = "separating_stems"
     transcribing = "transcribing"
     analyzing = "analyzing"
     generating_tabs = "generating_tabs"
     done = "done"
+
+
+class Instrument(str, Enum):
+    vocals = "vocals"
+    drums = "drums"
+    bass = "bass"
+    guitar = "guitar"
+    piano = "piano"
+    other = "other"
+    full_mix = "full_mix"
 
 
 class ChordFunction(str, Enum):
@@ -44,6 +55,7 @@ class NoteEvent(BaseModel):
     end_time: float = Field(description="End time in seconds")
     velocity: int = Field(default=100, description="MIDI velocity (0-127)")
     name: str = Field(default="", description="Note name like C4, D#5")
+    instrument: Instrument = Instrument.full_mix
 
 
 class ChordEvent(BaseModel):
@@ -93,6 +105,13 @@ class ChordSummary(BaseModel):
     count: int = 1
 
 
+class StemInfo(BaseModel):
+    instrument: Instrument
+    has_notes: bool = False
+    note_count: int = 0
+    audio_available: bool = False
+
+
 class SongAnalysis(BaseModel):
     title: str = ""
     duration: float = 0.0
@@ -110,6 +129,11 @@ class SongAnalysis(BaseModel):
     scale_notes: list[str] = Field(default_factory=list, description="Notes in the key's scale")
     chord_summary: list[ChordSummary] = Field(default_factory=list, description="Deduplicated chords with frequency")
     common_progressions: list[str] = Field(default_factory=list, description="Repeated roman numeral patterns")
+    stems: list[StemInfo] = Field(default_factory=list)
+    piano_notes: list[NoteEvent] = Field(default_factory=list)
+    guitar_notes: list[NoteEvent] = Field(default_factory=list)
+    bass_notes: list[NoteEvent] = Field(default_factory=list)
+    other_notes: list[NoteEvent] = Field(default_factory=list)
 
 
 # --- Job ---
@@ -122,6 +146,7 @@ class Job(BaseModel):
     result: SongAnalysis | None = None
     error: str | None = None
     audio_path: str | None = None
+    stems_dir: str | None = None
 
 
 # --- API responses ---
