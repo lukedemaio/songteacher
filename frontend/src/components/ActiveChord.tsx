@@ -1,8 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import type { ChordEvent, ChordFunction } from "../types";
 
 interface Props {
   chords: ChordEvent[];
   currentTime: number;
+  subscribe: (cb: (time: number) => void) => () => void;
 }
 
 const FUNCTION_COLORS: Record<ChordFunction, string> = {
@@ -23,10 +25,36 @@ const FUNCTION_LABELS: Record<ChordFunction, string> = {
   other: "Other",
 };
 
-export function ActiveChord({ chords, currentTime }: Props) {
-  const active = chords.find(
-    (c) => currentTime >= c.start_time && currentTime < c.end_time
-  );
+export function ActiveChord({ chords, currentTime, subscribe }: Props) {
+  const [active, setActive] = useState<ChordEvent | null>(null);
+  const chordsRef = useRef(chords);
+  const lastChordRef = useRef<string | null>(null);
+
+  useEffect(() => { chordsRef.current = chords; }, [chords]);
+
+  // Set initial active chord
+  useEffect(() => {
+    const found = chords.find(
+      (c) => currentTime >= c.start_time && currentTime < c.end_time
+    ) ?? null;
+    setActive(found);
+    lastChordRef.current = found?.name ?? null;
+  }, [chords]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Subscribe to time updates, throttled — only update state when chord changes
+  useEffect(() => {
+    const unsub = subscribe((t) => {
+      const found = chordsRef.current.find(
+        (c) => t >= c.start_time && t < c.end_time
+      ) ?? null;
+      const name = found?.name ?? null;
+      if (name !== lastChordRef.current) {
+        lastChordRef.current = name;
+        setActive(found);
+      }
+    });
+    return unsub;
+  }, [subscribe]);
 
   if (!active) {
     return (

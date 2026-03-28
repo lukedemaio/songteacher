@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { ChordEvent } from "../types";
 
 interface Props {
@@ -5,6 +6,7 @@ interface Props {
   currentTime: number;
   duration: number;
   onSeek: (time: number) => void;
+  subscribe: (cb: (time: number) => void) => () => void;
 }
 
 const FUNCTION_COLORS: Record<string, string> = {
@@ -16,7 +18,23 @@ const FUNCTION_COLORS: Record<string, string> = {
   other: "bg-slate-700 border-slate-500",
 };
 
-export function ChordTimeline({ chords, currentTime, duration, onSeek }: Props) {
+export function ChordTimeline({ chords, currentTime, duration, onSeek, subscribe }: Props) {
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef(currentTime);
+
+  useEffect(() => { timeRef.current = currentTime; }, [currentTime]);
+
+  // Ref-based cursor update — no React re-renders
+  useEffect(() => {
+    const unsub = subscribe((t) => {
+      timeRef.current = t;
+      if (cursorRef.current && duration > 0) {
+        cursorRef.current.style.left = `${(t / duration) * 100}%`;
+      }
+    });
+    return unsub;
+  }, [subscribe, duration]);
+
   if (!chords.length || duration === 0) return null;
 
   return (
@@ -26,15 +44,12 @@ export function ChordTimeline({ chords, currentTime, duration, onSeek }: Props) 
         {chords.map((chord, i) => {
           const left = (chord.start_time / duration) * 100;
           const width = Math.max(((chord.end_time - chord.start_time) / duration) * 100, 0.5);
-          const isActive = currentTime >= chord.start_time && currentTime < chord.end_time;
           const colors = FUNCTION_COLORS[chord.function] || FUNCTION_COLORS.other;
 
           return (
             <div
               key={i}
-              className={`absolute top-0 h-full border-r cursor-pointer flex items-center justify-center transition-opacity ${colors} ${
-                isActive ? "opacity-100 ring-2 ring-white/30 z-10" : "opacity-70 hover:opacity-90"
-              }`}
+              className={`absolute top-0 h-full border-r cursor-pointer flex items-center justify-center opacity-70 hover:opacity-90 ${colors}`}
               style={{ left: `${left}%`, width: `${width}%` }}
               onClick={() => onSeek(chord.start_time)}
               title={`${chord.name} (${chord.roman_numeral || "?"})`}
@@ -48,8 +63,9 @@ export function ChordTimeline({ chords, currentTime, duration, onSeek }: Props) 
           );
         })}
 
-        {/* Playback cursor */}
+        {/* Playback cursor — updated via ref, not React state */}
         <div
+          ref={cursorRef}
           className="absolute top-0 h-full w-0.5 bg-white z-20 pointer-events-none"
           style={{ left: `${(currentTime / duration) * 100}%` }}
         />

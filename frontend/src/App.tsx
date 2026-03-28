@@ -131,6 +131,7 @@ function App() {
             <ActiveChord
               chords={analysis.chords}
               currentTime={playback.currentTime}
+              subscribe={playback.subscribe}
             />
 
             {/* Chord timeline */}
@@ -139,6 +140,7 @@ function App() {
               currentTime={playback.currentTime}
               duration={playback.duration || analysis.duration}
               onSeek={handleSeek}
+              subscribe={playback.subscribe}
             />
 
             {/* Piano roll (vertical) */}
@@ -147,6 +149,7 @@ function App() {
               currentTime={playback.currentTime}
               duration={playback.duration || analysis.duration}
               onSeek={handleSeek}
+              subscribe={playback.subscribe}
               emptyMessage={pianoRollEmptyMessage}
             />
 
@@ -158,6 +161,7 @@ function App() {
                   currentTime={playback.currentTime}
                   duration={playback.duration || analysis.duration}
                   onSeek={handleSeek}
+                  subscribe={playback.subscribe}
                   emptyMessage={guitarTabEmptyMessage}
                 />
               </div>

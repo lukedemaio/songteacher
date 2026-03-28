@@ -11,9 +11,24 @@ export function usePlayback() {
 
   useEffect(() => {
     const engine = new PlaybackEngine();
-    engine.setTimeCallback((t) => setCurrentTime(t));
+    // Throttle React state updates to ~10fps (every 6th frame at 60fps)
+    let frameCount = 0;
+    engine.setTimeCallback((t) => {
+      frameCount++;
+      if (frameCount % 6 === 0) {
+        setCurrentTime(t);
+      }
+    });
     engineRef.current = engine;
     return () => engine.dispose();
+  }, []);
+
+  const subscribe = useCallback((cb: (time: number) => void) => {
+    return engineRef.current?.subscribe(cb) ?? (() => {});
+  }, []);
+
+  const unsubscribe = useCallback((cb: (time: number) => void) => {
+    engineRef.current?.unsubscribe(cb);
   }, []);
 
   const loadAudio = useCallback(async (url: string) => {
@@ -72,5 +87,7 @@ export function usePlayback() {
     togglePlay,
     seek,
     setPlaybackRate,
+    subscribe,
+    unsubscribe,
   };
 }

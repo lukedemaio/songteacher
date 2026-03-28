@@ -9,6 +9,7 @@ export class PlaybackEngine {
   private startWallTime = 0;
   private animFrame = 0;
   private onTimeUpdate: ((time: number) => void) | null = null;
+  private subscribers = new Set<(time: number) => void>();
 
   get isPlaying() {
     return this._isPlaying;
@@ -49,6 +50,15 @@ export class PlaybackEngine {
     this.onTimeUpdate = cb;
   }
 
+  subscribe(cb: (time: number) => void) {
+    this.subscribers.add(cb);
+    return () => this.subscribers.delete(cb);
+  }
+
+  unsubscribe(cb: (time: number) => void) {
+    this.subscribers.delete(cb);
+  }
+
   setPlaybackRate(rate: number) {
     const wasPlaying = this._isPlaying;
     const currentPos = this.getCurrentTime();
@@ -76,6 +86,7 @@ export class PlaybackEngine {
     }
 
     this.onTimeUpdate?.(current);
+    for (const sub of this.subscribers) sub(current);
     this.animFrame = requestAnimationFrame(this.tick);
   };
 
@@ -117,6 +128,7 @@ export class PlaybackEngine {
       this.play(this.startOffset);
     } else {
       this.onTimeUpdate?.(this.startOffset);
+      for (const sub of this.subscribers) sub(this.startOffset);
     }
   }
 
@@ -144,6 +156,7 @@ export class PlaybackEngine {
       this.play(this.startOffset);
     } else {
       this.onTimeUpdate?.(this.startOffset);
+      for (const sub of this.subscribers) sub(this.startOffset);
     }
 
     return duration;
