@@ -10,18 +10,18 @@ interface Props {
 }
 
 const TIME_SCALE = 80;
-const PIANO_KEY_WIDTH = 40;
+const PIANO_KEY_HEIGHT = 40;
 
 export function PianoRoll({ notes, currentTime, duration, onSeek }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const getScrollOffset = useCallback(() => {
-    // Auto-scroll to keep cursor roughly 1/3 from left
+    // Auto-scroll to keep cursor roughly 2/3 from top
     const canvas = canvasRef.current;
     if (!canvas) return 0;
-    const viewDuration = (canvas.clientWidth - PIANO_KEY_WIDTH) / TIME_SCALE;
-    return Math.max(0, currentTime - viewDuration * 0.33);
+    const viewDuration = (canvas.clientHeight - PIANO_KEY_HEIGHT) / TIME_SCALE;
+    return Math.max(0, currentTime - viewDuration * 0.67);
   }, [currentTime]);
 
   useEffect(() => {
@@ -63,12 +63,14 @@ export function PianoRoll({ notes, currentTime, duration, onSeek }: Props) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-    if (x < PIANO_KEY_WIDTH) return;
+    // Ignore clicks in bottom piano key area
+    const noteAreaHeight = rect.height - PIANO_KEY_HEIGHT;
+    if (y > noteAreaHeight) return;
 
     const scrollOffset = getScrollOffset();
-    const time = scrollOffset + (x - PIANO_KEY_WIDTH) / TIME_SCALE;
+    const time = scrollOffset + y / TIME_SCALE;
     onSeek(Math.max(0, Math.min(time, duration)));
   };
 
@@ -78,7 +80,7 @@ export function PianoRoll({ notes, currentTime, duration, onSeek }: Props) {
       <canvas
         ref={canvasRef}
         className="w-full cursor-crosshair"
-        style={{ height: "280px" }}
+        style={{ height: "500px" }}
         onClick={handleClick}
       />
     </div>

@@ -9,7 +9,7 @@ const GRID_COLOR = "#1e293b";
 const NOTE_COLOR = "#6366f1";
 const ACTIVE_NOTE_COLOR = "#818cf8";
 const CURSOR_COLOR = "#ef4444";
-const PIANO_KEY_WIDTH = 40;
+const PIANO_KEY_HEIGHT = 40;
 
 // Black keys in an octave
 const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
@@ -34,20 +34,18 @@ export function renderPianoRoll(
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, w, h);
 
-  const noteAreaWidth = w - PIANO_KEY_WIDTH;
-  const pitchHeight = h / PITCH_RANGE;
+  const noteAreaHeight = h - PIANO_KEY_HEIGHT;
+  const pitchWidth = w / PITCH_RANGE;
 
-  // Viewport: center on current time
+  // Viewport: time flows top-to-bottom
   const viewStart = scrollOffset;
-  const viewDuration = noteAreaWidth / TIME_SCALE;
+  const viewDuration = noteAreaHeight / TIME_SCALE;
   const viewEnd = viewStart + viewDuration;
 
-  // Draw horizontal grid lines (per pitch)
-  ctx.strokeStyle = GRID_COLOR;
-  ctx.lineWidth = 0.5;
+  // Draw vertical grid lines (per pitch)
   for (let p = PITCH_MIN; p <= PITCH_MAX; p++) {
-    const y = h - ((p - PITCH_MIN) / PITCH_RANGE) * h;
-    // Highlight octave lines
+    const x = ((p - PITCH_MIN) / PITCH_RANGE) * w;
+    // Highlight octave lines (C notes)
     if (p % 12 === 0) {
       ctx.strokeStyle = "#334155";
       ctx.lineWidth = 1;
@@ -56,27 +54,9 @@ export function renderPianoRoll(
       ctx.lineWidth = 0.5;
     }
     ctx.beginPath();
-    ctx.moveTo(PIANO_KEY_WIDTH, y);
-    ctx.lineTo(w, y);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, noteAreaHeight);
     ctx.stroke();
-  }
-
-  // Draw piano keys on left
-  for (let p = PITCH_MIN; p <= PITCH_MAX; p++) {
-    const y = h - ((p - PITCH_MIN + 1) / PITCH_RANGE) * h;
-    const noteInOctave = p % 12;
-    const isBlack = BLACK_KEYS.has(noteInOctave);
-
-    ctx.fillStyle = isBlack ? "#1e293b" : "#334155";
-    ctx.fillRect(0, y, PIANO_KEY_WIDTH - 1, pitchHeight);
-
-    // C labels
-    if (noteInOctave === 0) {
-      const octave = Math.floor(p / 12) - 1;
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "9px system-ui";
-      ctx.fillText(`C${octave}`, 4, y + pitchHeight * 0.75);
-    }
   }
 
   // Draw notes (only visible ones for performance)
@@ -84,17 +64,18 @@ export function renderPianoRoll(
     if (note.end_time < viewStart || note.start_time > viewEnd) continue;
     if (note.pitch < PITCH_MIN || note.pitch > PITCH_MAX) continue;
 
-    const x = PIANO_KEY_WIDTH + (note.start_time - viewStart) * TIME_SCALE;
-    const noteWidth = Math.max((note.end_time - note.start_time) * TIME_SCALE, 2);
-    const y = h - ((note.pitch - PITCH_MIN + 1) / PITCH_RANGE) * h;
+    const x = ((note.pitch - PITCH_MIN) / PITCH_RANGE) * w;
+    const yStart = (note.start_time - viewStart) * TIME_SCALE;
+    const yEnd = (note.end_time - viewStart) * TIME_SCALE;
+    const noteHeight = Math.max(yEnd - yStart, 2);
 
     const isActive = currentTime >= note.start_time && currentTime <= note.end_time;
 
     ctx.fillStyle = isActive ? ACTIVE_NOTE_COLOR : NOTE_COLOR;
     ctx.globalAlpha = isActive ? 1.0 : 0.7 + (note.velocity / 127) * 0.3;
 
-    const radius = Math.min(2, noteWidth / 2, pitchHeight / 2);
-    roundRect(ctx, x, y, noteWidth, Math.max(pitchHeight - 1, 2), radius);
+    const radius = Math.min(2, noteHeight / 2, pitchWidth / 2);
+    roundRect(ctx, x, yStart, Math.max(pitchWidth - 1, 2), noteHeight, radius);
     ctx.fill();
 
     // Glow effect for active notes
@@ -108,15 +89,35 @@ export function renderPianoRoll(
     ctx.globalAlpha = 1.0;
   }
 
-  // Draw cursor
-  const cursorX = PIANO_KEY_WIDTH + (currentTime - viewStart) * TIME_SCALE;
-  if (cursorX >= PIANO_KEY_WIDTH && cursorX <= w) {
+  // Draw cursor (horizontal line)
+  const cursorY = (currentTime - viewStart) * TIME_SCALE;
+  if (cursorY >= 0 && cursorY <= noteAreaHeight) {
     ctx.strokeStyle = CURSOR_COLOR;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(cursorX, 0);
-    ctx.lineTo(cursorX, h);
+    ctx.moveTo(0, cursorY);
+    ctx.lineTo(w, cursorY);
     ctx.stroke();
+  }
+
+  // Draw piano keys at bottom (horizontal bar)
+  for (let p = PITCH_MIN; p <= PITCH_MAX; p++) {
+    const x = ((p - PITCH_MIN) / PITCH_RANGE) * w;
+    const noteInOctave = p % 12;
+    const isBlack = BLACK_KEYS.has(noteInOctave);
+
+    ctx.fillStyle = isBlack ? "#1e293b" : "#334155";
+    ctx.fillRect(x, noteAreaHeight, pitchWidth - 0.5, PIANO_KEY_HEIGHT - 1);
+
+    // C labels
+    if (noteInOctave === 0) {
+      const octave = Math.floor(p / 12) - 1;
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "9px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(`C${octave}`, x + pitchWidth / 2, noteAreaHeight + PIANO_KEY_HEIGHT * 0.65);
+      ctx.textAlign = "start";
+    }
   }
 
   ctx.restore();
