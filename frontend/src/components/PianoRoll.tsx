@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { NoteEvent } from "../types";
-import { renderPianoRoll } from "../lib/pianoRollRenderer";
+import { renderPianoRoll, TIME_SCALE, PIANO_KEY_HEIGHT, CURSOR_FRACTION } from "../lib/pianoRollRenderer";
 
 interface Props {
   notes: NoteEvent[];
@@ -10,20 +10,9 @@ interface Props {
   emptyMessage?: string;
 }
 
-const TIME_SCALE = 80;
-const PIANO_KEY_HEIGHT = 40;
-
 export function PianoRoll({ notes, currentTime, duration, onSeek, emptyMessage }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const getScrollOffset = useCallback(() => {
-    // Auto-scroll to keep cursor roughly 2/3 from top
-    const canvas = canvasRef.current;
-    if (!canvas) return 0;
-    const viewDuration = (canvas.clientHeight - PIANO_KEY_HEIGHT) / TIME_SCALE;
-    return Math.max(0, currentTime - viewDuration * 0.67);
-  }, [currentTime]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -36,9 +25,8 @@ export function PianoRoll({ notes, currentTime, duration, onSeek, emptyMessage }
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
 
-    const scrollOffset = getScrollOffset();
-    renderPianoRoll(ctx, notes, currentTime, rect.width, rect.height, scrollOffset);
-  }, [notes, currentTime, getScrollOffset]);
+    renderPianoRoll(ctx, notes, currentTime, rect.width, rect.height, 0);
+  }, [notes, currentTime]);
 
   // Handle resize
   useEffect(() => {
@@ -52,13 +40,12 @@ export function PianoRoll({ notes, currentTime, duration, onSeek, emptyMessage }
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
-      const scrollOffset = getScrollOffset();
-      renderPianoRoll(ctx, notes, currentTime, rect.width, rect.height, scrollOffset);
+      renderPianoRoll(ctx, notes, currentTime, rect.width, rect.height, 0);
     });
 
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [notes, currentTime, getScrollOffset]);
+  }, [notes, currentTime]);
 
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -70,8 +57,10 @@ export function PianoRoll({ notes, currentTime, duration, onSeek, emptyMessage }
     const noteAreaHeight = rect.height - PIANO_KEY_HEIGHT;
     if (y > noteAreaHeight) return;
 
-    const scrollOffset = getScrollOffset();
-    const time = scrollOffset + y / TIME_SCALE;
+    // Inverted Y: y = cursorYPos - (time - currentTime) * TIME_SCALE
+    // Solving for time: time = currentTime - (y - cursorYPos) / TIME_SCALE
+    const cursorYPos = noteAreaHeight * CURSOR_FRACTION;
+    const time = currentTime - (y - cursorYPos) / TIME_SCALE;
     onSeek(Math.max(0, Math.min(time, duration)));
   };
 

@@ -1,6 +1,6 @@
 import type { NoteEvent } from "../types";
 
-const TIME_SCALE = 80; // pixels per second
+export const TIME_SCALE = 80; // pixels per second
 const PITCH_MIN = 21; // A0
 const PITCH_MAX = 108; // C8
 const PITCH_RANGE = PITCH_MAX - PITCH_MIN;
@@ -9,7 +9,10 @@ const GRID_COLOR = "#1e293b";
 const NOTE_COLOR = "#6366f1";
 const ACTIVE_NOTE_COLOR = "#818cf8";
 const CURSOR_COLOR = "#ef4444";
-const PIANO_KEY_HEIGHT = 40;
+export const PIANO_KEY_HEIGHT = 40;
+
+// Cursor sits at 80% down from the top — notes fall toward it
+export const CURSOR_FRACTION = 0.80;
 
 // Black keys in an octave
 const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
@@ -20,7 +23,7 @@ export function renderPianoRoll(
   currentTime: number,
   canvasWidth: number,
   canvasHeight: number,
-  scrollOffset: number
+  _scrollOffset: number
 ) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvasWidth;
@@ -37,15 +40,23 @@ export function renderPianoRoll(
   const noteAreaHeight = h - PIANO_KEY_HEIGHT;
   const pitchWidth = w / PITCH_RANGE;
 
-  // Viewport: time flows top-to-bottom
-  const viewStart = scrollOffset;
-  const viewDuration = noteAreaHeight / TIME_SCALE;
-  const viewEnd = viewStart + viewDuration;
+  // Cursor fixed position (80% down in the note area)
+  const cursorYPos = noteAreaHeight * CURSOR_FRACTION;
+
+  // Time visible above and below cursor
+  const timeAboveCursor = cursorYPos / TIME_SCALE;
+  const timeBelowCursor = (noteAreaHeight - cursorYPos) / TIME_SCALE;
+  const viewStart = currentTime - timeBelowCursor;
+  const viewEnd = currentTime + timeAboveCursor;
+
+  // Y formula: upcoming notes (time > currentTime) are above cursor (smaller y),
+  // past notes (time < currentTime) are below cursor (larger y).
+  // y = cursorYPos - (time - currentTime) * TIME_SCALE
+  const timeToY = (time: number) => cursorYPos - (time - currentTime) * TIME_SCALE;
 
   // Draw vertical grid lines (per pitch)
   for (let p = PITCH_MIN; p <= PITCH_MAX; p++) {
     const x = ((p - PITCH_MIN) / PITCH_RANGE) * w;
-    // Highlight octave lines (C notes)
     if (p % 12 === 0) {
       ctx.strokeStyle = "#334155";
       ctx.lineWidth = 1;
@@ -65,9 +76,10 @@ export function renderPianoRoll(
     if (note.pitch < PITCH_MIN || note.pitch > PITCH_MAX) continue;
 
     const x = ((note.pitch - PITCH_MIN) / PITCH_RANGE) * w;
-    const yStart = (note.start_time - viewStart) * TIME_SCALE;
-    const yEnd = (note.end_time - viewStart) * TIME_SCALE;
-    const noteHeight = Math.max(yEnd - yStart, 2);
+    // Note start is further in the future → higher up (smaller y)
+    const yTop = timeToY(note.end_time);
+    const yBottom = timeToY(note.start_time);
+    const noteHeight = Math.max(yBottom - yTop, 2);
 
     const isActive = currentTime >= note.start_time && currentTime <= note.end_time;
 
@@ -75,7 +87,7 @@ export function renderPianoRoll(
     ctx.globalAlpha = isActive ? 1.0 : 0.7 + (note.velocity / 127) * 0.3;
 
     const radius = Math.min(2, noteHeight / 2, pitchWidth / 2);
-    roundRect(ctx, x, yStart, Math.max(pitchWidth - 1, 2), noteHeight, radius);
+    roundRect(ctx, x, yTop, Math.max(pitchWidth - 1, 2), noteHeight, radius);
     ctx.fill();
 
     // Glow effect for active notes
@@ -89,16 +101,13 @@ export function renderPianoRoll(
     ctx.globalAlpha = 1.0;
   }
 
-  // Draw cursor (horizontal line)
-  const cursorY = (currentTime - viewStart) * TIME_SCALE;
-  if (cursorY >= 0 && cursorY <= noteAreaHeight) {
-    ctx.strokeStyle = CURSOR_COLOR;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, cursorY);
-    ctx.lineTo(w, cursorY);
-    ctx.stroke();
-  }
+  // Draw cursor (horizontal line at fixed position)
+  ctx.strokeStyle = CURSOR_COLOR;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, cursorYPos);
+  ctx.lineTo(w, cursorYPos);
+  ctx.stroke();
 
   // Draw piano keys at bottom (horizontal bar)
   for (let p = PITCH_MIN; p <= PITCH_MAX; p++) {
