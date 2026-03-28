@@ -74,8 +74,10 @@ function App() {
               currentTime={playback.currentTime}
               duration={playback.duration || analysis.duration}
               isLoaded={playback.isLoaded}
+              playbackRate={playback.playbackRate}
               onTogglePlay={playback.togglePlay}
               onSeek={handleSeek}
+              onPlaybackRateChange={playback.setPlaybackRate}
             />
 
             {/* Chord timeline */}

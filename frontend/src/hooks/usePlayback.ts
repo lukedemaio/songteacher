@@ -7,6 +7,7 @@ export function usePlayback() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [playbackRate, setPlaybackRateState] = useState(1);
 
   useEffect(() => {
     const engine = new PlaybackEngine();
@@ -46,15 +47,22 @@ export function usePlayback() {
     setCurrentTime(time);
   }, []);
 
+  const setPlaybackRate = useCallback((rate: number) => {
+    engineRef.current?.setPlaybackRate(rate);
+    setPlaybackRateState(rate);
+  }, []);
+
   return {
     currentTime,
     isPlaying,
     duration,
     isLoaded,
+    playbackRate,
     loadAudio,
     play,
     pause,
     togglePlay,
     seek,
+    setPlaybackRate,
   };
 }

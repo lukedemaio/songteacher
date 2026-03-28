@@ -3,11 +3,24 @@ interface Props {
   currentTime: number;
   duration: number;
   isLoaded: boolean;
+  playbackRate: number;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
+  onPlaybackRateChange: (rate: number) => void;
 }
 
-export function PlaybackControls({ isPlaying, currentTime, duration, isLoaded, onTogglePlay, onSeek }: Props) {
+const SPEED_OPTIONS = [0.25, 0.33, 0.4, 0.5, 0.58, 0.66, 0.75, 0.85, 1.0];
+
+export function PlaybackControls({
+  isPlaying,
+  currentTime,
+  duration,
+  isLoaded,
+  playbackRate,
+  onTogglePlay,
+  onSeek,
+  onPlaybackRateChange,
+}: Props) {
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     onSeek(Number(e.target.value));
   };
@@ -30,6 +43,19 @@ export function PlaybackControls({ isPlaying, currentTime, duration, isLoaded, o
           </svg>
         )}
       </button>
+
+      <select
+        value={playbackRate}
+        onChange={(e) => onPlaybackRateChange(Number(e.target.value))}
+        disabled={!isLoaded}
+        className="bg-slate-700 text-slate-200 text-sm rounded-lg px-2 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500 disabled:opacity-50 shrink-0"
+      >
+        {SPEED_OPTIONS.map((rate) => (
+          <option key={rate} value={rate}>
+            {Math.round(rate * 100)}%
+          </option>
+        ))}
+      </select>
 
       <div className="text-sm text-slate-400 font-mono w-24 shrink-0">
         {formatTime(currentTime)} / {formatTime(duration)}
