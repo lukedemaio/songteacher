@@ -13,7 +13,7 @@ import { GuitarTab } from "./components/GuitarTab";
 import { GuitarFretboard } from "./components/GuitarFretboard";
 import { TheoryPanel } from "./components/TheoryPanel";
 import { TheoryDrilldown } from "./components/TheoryDrilldown";
-import { QuickReference } from "./components/QuickReference";
+import { SongChords } from "./components/SongChords";
 import { ActiveChord } from "./components/ActiveChord";
 import type { Instrument, TheoryAnnotation } from "./types";
 
@@ -103,8 +103,15 @@ function App() {
             {/* Song info (with inline scale notes) */}
             <SongInfo analysis={analysis} />
 
-            {/* Quick reference */}
-            <QuickReference analysis={analysis} />
+            {/* Song chords reference */}
+            <SongChords
+              chords={analysis.chords}
+              chordSummary={analysis.chord_summary}
+              guitarTabChords={analysis.guitar_tab_chords}
+              currentTime={playback.currentTime}
+              onSeek={handleSeek}
+              subscribe={playback.subscribe}
+            />
 
             {/* Playback controls (with speed selector) */}
             <PlaybackControls
