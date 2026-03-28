@@ -11,16 +11,15 @@ import { ChordTimeline } from "./components/ChordTimeline";
 import { PianoRoll } from "./components/PianoRoll";
 import { GuitarTab } from "./components/GuitarTab";
 import { GuitarFretboard } from "./components/GuitarFretboard";
-import { TheoryPanel } from "./components/TheoryPanel";
-import { TheoryDrilldown } from "./components/TheoryDrilldown";
+import { NowPlaying } from "./components/NowPlaying";
 import { SongChords } from "./components/SongChords";
+import { TheoryReference } from "./components/TheoryReference";
 import { ActiveChord } from "./components/ActiveChord";
-import type { Instrument, TheoryAnnotation } from "./types";
+import type { Instrument } from "./types";
 
 function App() {
   const { submit, job, jobId, loading, error } = useAnalysisJob();
   const playback = usePlayback();
-  const [drilldownAnnotation, setDrilldownAnnotation] = useState<TheoryAnnotation | null>(null);
   const [activeStem, setActiveStem] = useState<Instrument>("full_mix");
 
   const analysis = job?.result ?? null;
@@ -134,6 +133,15 @@ function App() {
               />
             )}
 
+            {/* Now playing context bar */}
+            <NowPlaying
+              chords={analysis.chords}
+              sections={analysis.sections}
+              commonProgressions={analysis.common_progressions}
+              currentTime={playback.currentTime}
+              subscribe={playback.subscribe}
+            />
+
             {/* Active chord display */}
             <ActiveChord
               chords={analysis.chords}
@@ -180,23 +188,14 @@ function App() {
               </div>
             </div>
 
-            {/* Theory panel */}
-            <TheoryPanel
+            {/* Theory reference (collapsible, collapsed by default) */}
+            <TheoryReference
               annotations={analysis.theory_annotations}
               currentTime={playback.currentTime}
+              songKey={analysis.key}
               onSeek={handleSeek}
-              onDrilldown={setDrilldownAnnotation}
             />
           </div>
-        )}
-
-        {/* Theory drilldown modal */}
-        {drilldownAnnotation && analysis && (
-          <TheoryDrilldown
-            annotation={drilldownAnnotation}
-            songKey={analysis.key}
-            onClose={() => setDrilldownAnnotation(null)}
-          />
         )}
       </main>
     </div>
