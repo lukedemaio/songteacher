@@ -17,10 +17,12 @@ dependencies = [
     "numba==0.60.0",
     "onnxruntime>=1.17.0,<1.20",
     "setuptools<70",
-    "demucs>=4.0.0",
 ]
 
 [project.optional-dependencies]
+stems = [
+    "demucs>=4.0.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
