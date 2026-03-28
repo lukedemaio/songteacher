@@ -52,6 +52,13 @@ export function usePlayback() {
     setPlaybackRateState(rate);
   }, []);
 
+  const loadStemAudio = useCallback(async (url: string) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    await engine.loadStemAudio(url);
+    setIsPlaying(engine.isPlaying);
+  }, []);
+
   return {
     currentTime,
     isPlaying,
@@ -59,6 +66,7 @@ export function usePlayback() {
     isLoaded,
     playbackRate,
     loadAudio,
+    loadStemAudio,
     play,
     pause,
     togglePlay,

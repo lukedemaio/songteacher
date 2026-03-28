@@ -7,12 +7,13 @@ interface Props {
   currentTime: number;
   duration: number;
   onSeek: (time: number) => void;
+  emptyMessage?: string;
 }
 
 const TIME_SCALE = 80;
 const PIANO_KEY_HEIGHT = 40;
 
-export function PianoRoll({ notes, currentTime, duration, onSeek }: Props) {
+export function PianoRoll({ notes, currentTime, duration, onSeek, emptyMessage }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -73,6 +74,17 @@ export function PianoRoll({ notes, currentTime, duration, onSeek }: Props) {
     const time = scrollOffset + y / TIME_SCALE;
     onSeek(Math.max(0, Math.min(time, duration)));
   };
+
+  if (!notes.length && emptyMessage) {
+    return (
+      <div ref={containerRef} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <h3 className="text-sm font-medium text-slate-400 p-4 pb-0 uppercase tracking-wide">Piano Roll</h3>
+        <div className="flex items-center justify-center text-slate-500" style={{ height: "500px" }}>
+          {emptyMessage}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">

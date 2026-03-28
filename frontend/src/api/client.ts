@@ -27,6 +27,10 @@ export function getAudioUrl(jobId: string): string {
   return `${BASE}/jobs/${jobId}/audio`;
 }
 
+export function getStemAudioUrl(jobId: string, stem: string): string {
+  return `${BASE}/jobs/${jobId}/audio/${stem}`;
+}
+
 export function getModes(): Promise<ModeInfo[]> {
   return fetchJSON<ModeInfo[]>(`${BASE}/theory/modes`);
 }

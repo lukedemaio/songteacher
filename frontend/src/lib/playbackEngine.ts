@@ -128,6 +128,27 @@ export class PlaybackEngine {
     return this.startOffset;
   }
 
+  async loadStemAudio(url: string): Promise<number> {
+    const wasPlaying = this._isPlaying;
+    const currentPos = this.getCurrentTime();
+
+    if (wasPlaying) {
+      this.pause();
+    }
+
+    const duration = await this.loadAudio(url);
+
+    // Restore position and resume if was playing
+    this.startOffset = Math.min(currentPos, duration);
+    if (wasPlaying) {
+      this.play(this.startOffset);
+    } else {
+      this.onTimeUpdate?.(this.startOffset);
+    }
+
+    return duration;
+  }
+
   dispose() {
     cancelAnimationFrame(this.animFrame);
     this.player?.stop();

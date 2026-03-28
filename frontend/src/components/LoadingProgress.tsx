@@ -2,6 +2,7 @@ import type { PipelineStage } from "../types";
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
   downloading: "Downloading audio...",
+  separating_stems: "Separating instrument stems...",
   transcribing: "Transcribing notes (this may take a minute)...",
   analyzing: "Analyzing music theory...",
   generating_tabs: "Generating guitar tabs...",

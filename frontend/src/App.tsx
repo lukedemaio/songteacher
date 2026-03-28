@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
-import { getAudioUrl } from "./api/client";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getAudioUrl, getStemAudioUrl } from "./api/client";
 import { useAnalysisJob } from "./hooks/useAnalysisJob";
 import { usePlayback } from "./hooks/usePlayback";
 import { UrlInput } from "./components/UrlInput";
 import { LoadingProgress } from "./components/LoadingProgress";
 import { SongInfo } from "./components/SongInfo";
 import { PlaybackControls } from "./components/PlaybackControls";
+import { StemSelector } from "./components/StemSelector";
 import { ChordTimeline } from "./components/ChordTimeline";
 import { PianoRoll } from "./components/PianoRoll";
 import { GuitarTab } from "./components/GuitarTab";
@@ -14,12 +15,13 @@ import { TheoryPanel } from "./components/TheoryPanel";
 import { TheoryDrilldown } from "./components/TheoryDrilldown";
 import { QuickReference } from "./components/QuickReference";
 import { ActiveChord } from "./components/ActiveChord";
-import type { TheoryAnnotation } from "./types";
+import type { Instrument, TheoryAnnotation } from "./types";
 
 function App() {
   const { submit, job, jobId, loading, error } = useAnalysisJob();
   const playback = usePlayback();
   const [drilldownAnnotation, setDrilldownAnnotation] = useState<TheoryAnnotation | null>(null);
+  const [activeStem, setActiveStem] = useState<Instrument>("full_mix");
 
   const analysis = job?.result ?? null;
   const isProcessing = loading && job?.status !== "completed";
@@ -35,6 +37,37 @@ function App() {
     (time: number) => playback.seek(time),
     [playback]
   );
+
+  const handleStemChange = useCallback(
+    (stem: Instrument) => {
+      if (!jobId) return;
+      setActiveStem(stem);
+      const url = stem === "full_mix"
+        ? getAudioUrl(jobId)
+        : getStemAudioUrl(jobId, stem);
+      playback.loadStemAudio(url);
+    },
+    [jobId, playback]
+  );
+
+  const pianoRollNotes = useMemo(() => {
+    if (!analysis) return [];
+    switch (activeStem) {
+      case "piano": return analysis.piano_notes;
+      case "guitar": return analysis.guitar_notes;
+      case "bass": return analysis.bass_notes;
+      case "other": return analysis.other_notes;
+      default: return analysis.notes;
+    }
+  }, [analysis, activeStem]);
+
+  const pianoRollEmptyMessage = activeStem !== "full_mix"
+    ? `No ${activeStem} notes detected`
+    : undefined;
+
+  const guitarTabEmptyMessage = analysis && !analysis.guitar_tab_notes.length
+    ? "No guitar notes detected"
+    : undefined;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -85,6 +118,15 @@ function App() {
               onPlaybackRateChange={playback.setPlaybackRate}
             />
 
+            {/* Stem selector */}
+            {analysis.stems.length > 0 && (
+              <StemSelector
+                stems={analysis.stems}
+                activeStem={activeStem}
+                onStemChange={handleStemChange}
+              />
+            )}
+
             {/* Active chord display */}
             <ActiveChord
               chords={analysis.chords}
@@ -101,10 +143,11 @@ function App() {
 
             {/* Piano roll (vertical) */}
             <PianoRoll
-              notes={analysis.notes}
+              notes={pianoRollNotes}
               currentTime={playback.currentTime}
               duration={playback.duration || analysis.duration}
               onSeek={handleSeek}
+              emptyMessage={pianoRollEmptyMessage}
             />
 
             {/* Guitar section */}
@@ -115,6 +158,7 @@ function App() {
                   currentTime={playback.currentTime}
                   duration={playback.duration || analysis.duration}
                   onSeek={handleSeek}
+                  emptyMessage={guitarTabEmptyMessage}
                 />
               </div>
               <div>

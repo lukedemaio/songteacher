@@ -4,10 +4,27 @@ export type JobStatus = "pending" | "processing" | "completed" | "failed";
 
 export type PipelineStage =
   | "downloading"
+  | "separating_stems"
   | "transcribing"
   | "analyzing"
   | "generating_tabs"
   | "done";
+
+export type Instrument =
+  | "vocals"
+  | "drums"
+  | "bass"
+  | "guitar"
+  | "piano"
+  | "other"
+  | "full_mix";
+
+export interface StemInfo {
+  instrument: Instrument;
+  has_notes: boolean;
+  note_count: number;
+  audio_available: boolean;
+}
 
 export type ChordFunction =
   | "tonic"
@@ -23,6 +40,7 @@ export interface NoteEvent {
   end_time: number;
   velocity: number;
   name: string;
+  instrument?: Instrument;
 }
 
 export interface ChordEvent {
@@ -89,6 +107,11 @@ export interface SongAnalysis {
   scale_notes: string[];
   chord_summary: ChordSummary[];
   common_progressions: string[];
+  stems: StemInfo[];
+  piano_notes: NoteEvent[];
+  guitar_notes: NoteEvent[];
+  bass_notes: NoteEvent[];
+  other_notes: NoteEvent[];
 }
 
 export interface AnalyzeResponse {

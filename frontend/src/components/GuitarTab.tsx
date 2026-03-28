@@ -5,6 +5,7 @@ interface Props {
   currentTime: number;
   duration: number;
   onSeek: (time: number) => void;
+  emptyMessage?: string;
 }
 
 const STRING_NAMES = ["e", "B", "G", "D", "A", "E"];
@@ -13,8 +14,20 @@ const TIME_SCALE = 60; // px per second
 const LEFT_MARGIN = 30;
 const VIEW_WINDOW = 10; // seconds visible
 
-export function GuitarTab({ tabNotes, currentTime, duration, onSeek }: Props) {
-  if (!tabNotes.length) return null;
+export function GuitarTab({ tabNotes, currentTime, duration, onSeek, emptyMessage }: Props) {
+  if (!tabNotes.length) {
+    if (emptyMessage) {
+      return (
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 overflow-hidden">
+          <h3 className="text-sm font-medium text-slate-400 mb-3 uppercase tracking-wide">Guitar Tab</h3>
+          <div className="flex items-center justify-center text-slate-500 py-8">
+            {emptyMessage}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
 
   // Show a window around current time
   const viewStart = Math.max(0, currentTime - VIEW_WINDOW * 0.25);
