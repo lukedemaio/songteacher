@@ -35,7 +35,7 @@ async def run_pipeline(job_id: str, youtube_url: str) -> None:
 
         # Stage 3: Music theory analysis
         job_store.update(job_id, stage=PipelineStage.analyzing, progress=0.6)
-        key, key_confidence, mode, tempo, time_sig, chords, annotations, sections = (
+        key, key_confidence, mode, tempo, time_sig, chords, annotations, sections, scale_notes, chord_summary, common_progressions = (
             await asyncio.to_thread(analyze_midi, midi_path, notes, duration)
         )
         job_store.update(job_id, progress=0.8)
@@ -61,6 +61,9 @@ async def run_pipeline(job_id: str, youtube_url: str) -> None:
             guitar_tab_chords=guitar_tab_chords,
             theory_annotations=annotations,
             sections=sections,
+            scale_notes=scale_notes,
+            chord_summary=chord_summary,
+            common_progressions=common_progressions,
         )
 
         job_store.update(

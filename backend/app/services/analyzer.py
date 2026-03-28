@@ -7,7 +7,7 @@ import music21
 from music21 import chord as m21chord, key as m21key, roman as m21roman
 
 from app.models.schemas import (
-    ChordEvent, ChordFunction, NoteEvent, SongSection,
+    ChordEvent, ChordFunction, ChordSummary, NoteEvent, SongSection,
     TheoryAnnotation,
 )
 
@@ -199,14 +199,110 @@ def _generate_sections(chords: list[ChordEvent], duration: float) -> list[SongSe
     return sections
 
 
+def _enharmonic_equal(a: str, b: str) -> bool:
+    """Compare note names accounting for enharmonic equivalence (C# == D-, etc.)."""
+    try:
+        pa = music21.pitch.Pitch(a)
+        pb = music21.pitch.Pitch(b)
+        return pa.midi == pb.midi
+    except Exception:
+        return a == b
+
+
+def _get_scale_notes(key_name: str, mode: str) -> list[str]:
+    """Get the note names in the key's scale."""
+    try:
+        k = m21key.Key(key_name, mode)
+        scale = k.getScale()
+        pitches = scale.getPitches()
+        # Return unique note names (without octave), exclude the repeated tonic at top
+        seen: set[str] = set()
+        result: list[str] = []
+        for p in pitches:
+            name = p.name
+            if name not in seen:
+                seen.add(name)
+                result.append(name)
+        return result[:7]  # 7 unique scale degrees
+    except Exception as e:
+        logger.warning("Failed to get scale notes: %s", e)
+        return []
+
+
+def _build_chord_summary(
+    chords: list[ChordEvent],
+    key_name: str,
+    mode: str,
+    scale_notes: list[str],
+) -> list[ChordSummary]:
+    """Deduplicate chords by name, count occurrences, map tones to scale degrees."""
+    counts: dict[str, int] = {}
+    first_seen: dict[str, ChordEvent] = {}
+
+    for c in chords:
+        if c.name not in counts:
+            counts[c.name] = 0
+            first_seen[c.name] = c
+        counts[c.name] += 1
+
+    summaries: list[ChordSummary] = []
+    for name, count in counts.items():
+        chord = first_seen[name]
+        # Map each chord tone to its scale degree
+        scale_degrees: list[str] = []
+        for note_name in chord.notes:
+            matched = False
+            for i, sn in enumerate(scale_notes):
+                if _enharmonic_equal(note_name, sn):
+                    scale_degrees.append(str(i + 1))
+                    matched = True
+                    break
+            if not matched:
+                scale_degrees.append("?")
+
+        summaries.append(ChordSummary(
+            name=name,
+            roman_numeral=chord.roman_numeral,
+            function=chord.function,
+            notes=chord.notes,
+            scale_degrees=scale_degrees,
+            count=count,
+        ))
+
+    # Sort by frequency descending
+    summaries.sort(key=lambda s: s.count, reverse=True)
+    return summaries
+
+
+def _detect_common_progressions(chords: list[ChordEvent]) -> list[str]:
+    """Detect repeated roman numeral patterns using a sliding window."""
+    romans = [c.roman_numeral for c in chords if c.roman_numeral]
+    if len(romans) < 3:
+        return []
+
+    pattern_counts: dict[str, int] = {}
+
+    for window_size in (3, 4):
+        for i in range(len(romans) - window_size + 1):
+            pattern = " - ".join(romans[i : i + window_size])
+            pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
+
+    # Filter patterns appearing 2+ times, sort by frequency
+    repeated = [(p, c) for p, c in pattern_counts.items() if c >= 2]
+    repeated.sort(key=lambda x: x[1], reverse=True)
+
+    return [p for p, _ in repeated[:5]]
+
+
 def analyze_midi(
     midi_path: Path,
     notes: list[NoteEvent],
     duration: float,
-) -> tuple[str, float, str, float, str, list[ChordEvent], list[TheoryAnnotation], list[SongSection]]:
+) -> tuple[str, float, str, float, str, list[ChordEvent], list[TheoryAnnotation], list[SongSection], list[str], list[ChordSummary], list[str]]:
     """Full music theory analysis of a MIDI file.
 
-    Returns (key, key_confidence, mode, tempo, time_signature, chords, annotations, sections).
+    Returns (key, key_confidence, mode, tempo, time_signature, chords, annotations, sections,
+             scale_notes, chord_summary, common_progressions).
     """
     logger.info("Analyzing: %s", midi_path)
 
@@ -236,7 +332,12 @@ def analyze_midi(
     # Sections
     sections = _generate_sections(chords, duration)
 
+    # New v2 analysis
+    scale_notes = _get_scale_notes(key_name, mode)
+    chord_summary = _build_chord_summary(chords, key_name, mode, scale_notes)
+    common_progressions = _detect_common_progressions(chords)
+
     logger.info("Analysis: key=%s %s (%.2f), tempo=%.0f, %d chords, %d annotations",
                 key_name, mode, confidence, tempo, len(chords), len(annotations))
 
-    return key_name, confidence, mode, tempo, time_sig, chords, annotations, sections
+    return key_name, confidence, mode, tempo, time_sig, chords, annotations, sections, scale_notes, chord_summary, common_progressions

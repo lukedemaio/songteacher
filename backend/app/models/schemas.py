@@ -84,6 +84,15 @@ class SongSection(BaseModel):
     end_time: float
 
 
+class ChordSummary(BaseModel):
+    name: str
+    roman_numeral: str = ""
+    function: ChordFunction = ChordFunction.other
+    notes: list[str] = Field(default_factory=list)
+    scale_degrees: list[str] = Field(default_factory=list, description="e.g. ['1', '3', '5']")
+    count: int = 1
+
+
 class SongAnalysis(BaseModel):
     title: str = ""
     duration: float = 0.0
@@ -98,6 +107,9 @@ class SongAnalysis(BaseModel):
     guitar_tab_chords: list[GuitarTabChord] = Field(default_factory=list)
     theory_annotations: list[TheoryAnnotation] = Field(default_factory=list)
     sections: list[SongSection] = Field(default_factory=list)
+    scale_notes: list[str] = Field(default_factory=list, description="Notes in the key's scale")
+    chord_summary: list[ChordSummary] = Field(default_factory=list, description="Deduplicated chords with frequency")
+    common_progressions: list[str] = Field(default_factory=list, description="Repeated roman numeral patterns")
 
 
 # --- Job ---
