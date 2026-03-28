@@ -74,26 +74,50 @@ _INSTRUMENT_FREQ_RANGES: dict[Instrument, tuple[float, float]] = {
 }
 
 
+_INSTRUMENT_THRESHOLDS: dict[Instrument, dict] = {
+    Instrument.bass: {
+        "onset_threshold": 0.6,
+        "frame_threshold": 0.3,
+        "minimum_note_length": 100,
+    },
+    Instrument.guitar: {
+        "onset_threshold": 0.5,
+        "frame_threshold": 0.25,
+        "minimum_note_length": 50,
+    },
+    Instrument.piano: {
+        "onset_threshold": 0.5,
+        "frame_threshold": 0.3,
+        "minimum_note_length": 58,
+    },
+}
+
+
 def transcribe_stem(
     wav_path: Path, job_id: str, instrument: Instrument
 ) -> tuple[list[NoteEvent], Path]:
     """Transcribe a single instrument stem to note events.
 
-    Uses instrument-specific frequency ranges for better accuracy.
+    Uses instrument-specific frequency ranges and thresholds for better accuracy.
     Returns (note_events, midi_path).
     """
     from basic_pitch.inference import predict
 
     min_freq, max_freq = _INSTRUMENT_FREQ_RANGES.get(instrument, (65.0, 2100.0))
+    thresholds = _INSTRUMENT_THRESHOLDS.get(instrument, {})
+    onset_threshold = thresholds.get("onset_threshold", 0.5)
+    frame_threshold = thresholds.get("frame_threshold", 0.3)
+    min_note_length = thresholds.get("minimum_note_length", 58)
 
-    logger.info("Transcribing stem %s: %s (freq range %.0f-%.0fHz)",
-                instrument.value, wav_path, min_freq, max_freq)
+    logger.info("Transcribing stem %s: %s (freq range %.0f-%.0fHz, onset=%.2f, frame=%.2f, min_note=%dms)",
+                instrument.value, wav_path, min_freq, max_freq,
+                onset_threshold, frame_threshold, min_note_length)
 
     model_output, midi_data, note_events = predict(
         str(wav_path),
-        onset_threshold=0.5,
-        frame_threshold=0.3,
-        minimum_note_length=58,
+        onset_threshold=onset_threshold,
+        frame_threshold=frame_threshold,
+        minimum_note_length=min_note_length,
         minimum_frequency=min_freq,
         maximum_frequency=max_freq,
     )
